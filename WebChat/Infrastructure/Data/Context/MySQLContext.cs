@@ -22,16 +22,15 @@ namespace WebChat.Infrastructure.Data.Context
 
             modelBuilder.Entity<Message>()
                .HasOne(m => m.SenderUser)
-               .WithMany(u => u.Messages)
+               .WithMany(u => u.SentMessages)
                .HasForeignKey(m => m.SenderUserId)
                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Message>()
                 .HasOne(m => m.ReceiverUser)
-                .WithMany(u => u.Messages)
+                .WithMany(u => u.ReceivedMessages)
                 .HasForeignKey(m => m.ReceiverUserId)
                 .OnDelete(DeleteBehavior.Restrict);
-
         }
     }
 }
