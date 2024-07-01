@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -80,6 +81,11 @@ namespace WebChat.Infrastructure.Data.Repositories
             _context.Message.RemoveRange(messages);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        internal async Task<List<Message>> ListMessages()
+        {
+            throw new NotImplementedException();
         }
     }
 }

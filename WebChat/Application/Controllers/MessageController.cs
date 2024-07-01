@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using System.Linq;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using WebChat.Domain.Services.Interfaces;
+using WebChat.Domain.Models;
+using System;
 using WebChat.Domain.Models.DTOs;
 
 namespace WebChat.Application.Controllers
@@ -14,110 +15,109 @@ namespace WebChat.Application.Controllers
     public class MessageController : ControllerBase
     {
         private readonly IMessageService _messageService;
-        private readonly ILogger<MessageController> _logger;
-        private readonly IAuthService _authService;
-        public MessageController(IMessageService messageService, IAuthService authService, ILogger<MessageController> logger)
+
+        public MessageController(IMessageService messageService)
         {
-            _logger = logger;
-            _authService = authService;
             _messageService = messageService;
         }
 
         [HttpGet("get")]
-        public async Task<IActionResult> GetMessage(int messageId)
+        public async Task<ActionResult<Message>> GetMessageByIdAsync([FromQuery] int messageId)
         {
-            var message = await _messageService.GetMessageByIdAsync(messageId);
-            if (message == null)
+            try
             {
-                return NotFound();
+                var message = await _messageService.GetMessageByIdAsync(messageId);
+                return Ok(message);
             }
-
-            // Atualiza o campo ReadAt e salva as alterações
-            await _messageService.UpdateReadAtAsync(message);
-
-            var messageDto = new MessageDTO
+            catch (Exception ex)
             {
-                Id = message.Id,
-                Content = message.Content,
-                CreatedAt = message.CreatedAt,
-                ReadAt = message.ReadAt,
-                SenderUsername = (await _authService.GetUserById(message.SenderUserId)).UserName,
-                ReceiverUsername = (await _authService.GetUserById(message.ReceiverUserId)).UserName
-            };
-
-            return Ok(messageDto);
-        }
-
-        [HttpGet("user/{userId}")]
-        public async Task<IActionResult> GetMessagesByUser()
-        {
-            var currentUser = await _authService.GetCurrentUser();
-            var messages = await _messageService.GetMessagesByUserIdAsync();
-
-            var messageDtos = messages.Select(async m => new MessageDTO
-            {
-                Id = m.Id,
-                Content = m.Content,
-                CreatedAt = m.CreatedAt,
-                ReadAt = m.ReadAt,
-                SenderUsername = (await _authService.GetUserById(m.SenderUserId)).UserName,
-                ReceiverUsername = (await _authService.GetUserById(m.ReceiverUserId)).UserName
-            }).Select(t => t.Result).ToList();
-
-            return Ok(messageDtos);
-        }
-
-        [HttpGet("conversations/{otherUserName}")]
-        public async Task<IActionResult> GetConversationsByUser(string otherUserName)
-        {
-            var messages = await _messageService.GetConversationsByUserIdAsync(otherUserName);
-            if (messages == null || !messages.Any())
-            {
-                return NotFound();
+                return BadRequest(ex.Message);
             }
-
-            var messageDtos = messages.Select(async m => new MessageDTO
-            {
-                Id = m.Id,
-                Content = m.Content,
-                CreatedAt = m.CreatedAt,
-                ReadAt = m.ReadAt,
-                SenderUsername = (await _authService.GetUserById(m.SenderUserId)).UserName,
-                ReceiverUsername = (await _authService.GetUserById(m.ReceiverUserId)).UserName
-            }).Select(t => t.Result).ToList();
-
-            return Ok(messageDtos);
         }
 
+        [HttpGet("all-messages-from-user")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetMessagesByUser([FromQuery] string userId)
+        {
+            try
+            {
+                var messagesDTO = await _messageService.GetMessagesByUserIdAsync(userId);
+                return Ok(messagesDTO);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("conversation-with-other-user")]
+        public async Task<ActionResult<IEnumerable<Message>>> GetConversations([FromQuery] string otherUserName)
+        {
+            try
+            {
+                var messages = await _messageService.GetConversationsByUserIdAsync(otherUserName);
+                return Ok(messages);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpPost("send")]
         public async Task<IActionResult> SendMessage([FromBody] NewMessageRequestDTO requestDTO)
         {
-            await _messageService.SendMessageAsync(requestDTO.ReceiverUsername, requestDTO.Content);
-            return Ok("Message sent successfully");
+            try
+            {
+                await _messageService.SendMessageAsync(requestDTO.ReceiverUsername, requestDTO.Content);
+                return Ok("Message sent successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        [HttpPut("update/{messageId}")]
-        public async Task<IActionResult> UpdateMessage(int messageId, [FromBody] string content)
+        [HttpPost("update")]
+        public async Task<ActionResult> UpdateMessage(int messageId, [FromBody] string content)
         {
-            _logger.LogInformation("UpdateMessage: messageId = {}, content = {}", messageId, content);
-            await _messageService.UpdateMessageAsync(messageId, content);
-            return Ok("Message updated successfully");
+            try
+            {
+                await _messageService.UpdateMessageAsync(messageId, content);
+                return Ok("Message updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        [HttpDelete("{messageId}")]
-        public async Task<IActionResult> DeleteMessage(int messageId)
+        [HttpPost("delete-message-by-body")]
+        public async Task<ActionResult> DeleteMessageByBody([FromBody] int messageId)
         {
-            await _messageService.DeleteMessageAsync(messageId);
-            return Ok("Message deleted successfully");
+            try
+            {
+                await _messageService.DeleteMessageAsync(messageId);
+                return Ok("Message deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        [HttpDelete("conversation/{userId}/{contactId}")]
-        public async Task<IActionResult> DeleteMessagesByConversation(string otherUserName)
+        [HttpPost("delete-conversation")]
+        public async Task<IActionResult> DeleteMessagesByConversation([FromBody] string otherUserId)
         {
-            await _messageService.DeleteMessagesByConversationAsync(otherUserName);
-            return Ok("Conversation deleted successfully");
+            try
+            {
+                await _messageService.DeleteMessagesByConversationAsync(otherUserId);
+                return Ok("Conversation deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
+
     }
-
 }

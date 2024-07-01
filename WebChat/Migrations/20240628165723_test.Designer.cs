@@ -9,8 +9,8 @@ using WebChat.Infrastructure.Data.Context;
 namespace WebChat.Migrations
 {
     [DbContext(typeof(MySQLContext))]
-    [Migration("20240628115846_initial")]
-    partial class initial
+    [Migration("20240628165723_test")]
+    partial class test
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

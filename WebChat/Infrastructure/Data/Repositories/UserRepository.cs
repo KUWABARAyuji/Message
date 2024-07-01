@@ -41,6 +41,7 @@ namespace WebChat.Infrastructure.Data.Repositories
             return ret.Entity;
         }
 
+
         public async Task<int> UpdateUser(ApplicationUser user)
         {
             _context.Entry(user).State = EntityState.Modified;
@@ -66,5 +67,13 @@ namespace WebChat.Infrastructure.Data.Repositories
 
             return userList.FirstOrDefault();
         }
-    }
+        public async Task<ApplicationUser> GetUserWithSentMessages(string userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.SentMessages)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            return user;
+        }
+}
 }
